@@ -186,8 +186,9 @@ class GeneticCuttingOptimizer
     }
 
     /**
-     * Найти все свободные прямоугольники в дереве разбивки. 
-     * Уже отфильтровываем мелкие кусочки < minScrapWidth×minScrapHeight.
+     * Найти все свободные прямоугольники в дереве разбивки.
+     * Уже отфильтровываем мелкие кусочки < minScrapWidth×minScrapHeight
+     * (учитываем возможный поворот остатка).
      */
     private function findFreeSpaces($node)
     {
@@ -202,8 +203,13 @@ class GeneticCuttingOptimizer
         if (empty($node['children'])) {
             // И сразу проверяем по минимальному размеру
             if (
-                $node['width']  >= $this->minScrapWidth &&
-                $node['height'] >= $this->minScrapHeight
+                (
+                    $node['width']  >= $this->minScrapWidth &&
+                    $node['height'] >= $this->minScrapHeight
+                ) || (
+                    $node['width']  >= $this->minScrapHeight &&
+                    $node['height'] >= $this->minScrapWidth
+                )
             ) {
                 return [[
                     'x'      => $node['x'],
@@ -329,7 +335,10 @@ class GeneticCuttingOptimizer
                 for ($x2 = $x1; $x2 < $width && $row[$x2] > 0; $x2++) {
                     $minHNow = min($minHNow, $row[$x2]);
                     $w = $x2 - $x1 + 1;
-                    if ($w >= $minW && $minHNow >= $minH) {
+                    if (
+                        ($w >= $minW && $minHNow >= $minH) ||
+                        ($w >= $minH && $minHNow >= $minW)
+                    ) {
                         $rects[] = [
                             'x'      => $x1,
                             'y'      => $y - $minHNow + 1,
@@ -526,7 +535,10 @@ class GeneticCuttingOptimizer
                 $w = $space['width'];
                 $h = $space['height'];
                 error_log("Остаток: {$w} × {$h}");
-                if ($w >= $this->minScrapWidth && $h >= $this->minScrapHeight) {
+                if (
+                    ($w >= $this->minScrapWidth && $h >= $this->minScrapHeight) ||
+                    ($w >= $this->minScrapHeight && $h >= $this->minScrapWidth)
+                ) {
                     $usableScrap += $w * $h;
                 }
             }
