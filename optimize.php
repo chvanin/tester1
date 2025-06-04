@@ -233,8 +233,8 @@ class GeneticCuttingOptimizer
 
     private function calculateFreeSpacesSimple($sheetDetails, $sheetIndex)
     {
-        // Если лист «большой» (> 500×500), используем дерево, но с фильтром в findFreeSpaces()
-        if ($this->sheetWidth > 500 || $this->sheetHeight > 500) {
+        // Если лист «большой» (> 3000×3000), используем дерево, но с фильтром в findFreeSpaces()
+        if ($this->sheetWidth > 3000 || $this->sheetHeight > 3000) {
             $spaceMap = [
                 'isOccupied' => false,
                 'x' => 0,
