@@ -1,0 +1,2816 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Система оптимизации раскроя листового материала</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+
+            /* Корпоративная цветовая палитра */
+            --primary-color: #4338ca;
+            --primary-dark: #3730a3;
+            --primary-light: #6366f1;
+            --accent-color: #8b5cf6;
+            --accent-light: #a78bfa;
+            
+            /* Цвета для деталей */
+            --detail-normal : #10b981;
+            --detail-rotated: #3b82f6;
+            
+            /* Нейтральные цвета */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-tertiary: #94a3b8;
+            --border-color: #e2e8f0;
+            
+            /* Стеклянные эффекты */
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
+            --backdrop-filter: blur(12px);
+            
+            /* Размеры */
+            --squircle-radius: 20px;
+            --header-height: 72px;
+            --mobile-header-height: 60px;
+            --max-width: 1600px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(180deg, #f8fafc 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Фоновые декоративные элементы */
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.2;
+            z-index: -1;
+        }
+
+        body::before {
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+            top: -400px;
+            right: -400px;
+            animation: float 25s ease-in-out infinite;
+        }
+
+        body::after {
+            width: 1000px;
+            height: 1000px;
+            background: radial-gradient(circle, rgba(67, 56, 202, 0.3) 0%, transparent 70%);
+            bottom: -500px;
+            left: -500px;
+            animation: float 30s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(30px, -30px) rotate(5deg); }
+            50% { transform: translate(-20px, 20px) rotate(-5deg); }
+            75% { transform: translate(-30px, -20px) rotate(3deg); }
+        }
+
+        /* Приветственная страница */
+        .welcome-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .welcome-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--backdrop-filter);
+            -webkit-backdrop-filter: var(--backdrop-filter);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--squircle-radius);
+            box-shadow: var(--glass-shadow);
+            padding: 60px 50px;
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            border-radius: var(--squircle-radius) var(--squircle-radius) 0 0;
+        }
+
+        .welcome-logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(67, 56, 202, 0.3);
+            transform: rotate(-5deg);
+            transition: transform 0.3s ease;
+        }
+
+        .welcome-logo:hover {
+            transform: rotate(5deg) scale(1.05);
+        }
+
+        .welcome-logo i {
+            font-size: 48px;
+            color: white;
+        }
+
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .welcome-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            font-weight: 400;
+        }
+
+        .welcome-features {
+            display: grid;
+            gap: 16px;
+            margin-bottom: 40px;
+            text-align: left;
+        }
+
+        .welcome-feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--glass-bg);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+        }
+
+        .welcome-feature:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateX(5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-feature i {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .welcome-feature-text {
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .btn-enter {
+            width: 100%;
+            padding: 18px 32px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(67, 56, 202, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-enter::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-enter:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-enter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(67, 56, 202, 0.4);
+        }
+
+        .btn-enter:active {
+            transform: translateY(0);
+        }
+
+        /* Основной интерфейс */
+        .main-app {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .main-app.active {
+            display: block;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: var(--backdrop-filter);
+            -webkit-backdrop-filter: var(--backdrop-filter);
+            border-bottom: 1px solid var(--border-color);
+            height: var(--header-height);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: var(--glass-shadow);
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+        }
+
+        .header-content {
+            max-width: var(--max-width);
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(67, 56, 202, 0.3);
+        }
+
+        .logo-icon i {
+            font-size: 22px;
+            color: white;
+        }
+
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .header-stat {
+            text-align: center;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .header-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .header-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .main-container {
+            margin-top: var(--header-height);
+            padding: 20px;
+            max-width: var(--max-width);
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            min-height: calc(100vh - var(--header-height) - 40px);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--backdrop-filter);
+            -webkit-backdrop-filter: var(--backdrop-filter);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--squircle-radius);
+            box-shadow: var(--glass-shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--bg-tertiary);
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            font-size: 20px;
+            color: var(--primary-color);
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            background: var(--bg-tertiary);
+            padding: 6px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .tab.active {
+            background: white;
+            color: var(--primary-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.5);
+            color: var(--text-primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab i {
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .form-group label i {
+            color: var(--primary-color);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-group span {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(67, 56, 202, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(67, 56, 202, 0.3);
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: #fff;                /* цифры/текст */
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+
+	    color: inherit; 
+        }
+
+        .btn-success {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+            background: #7c3aed;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-lg {
+            padding: 16px 32px;
+            font-size: 16px;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .details-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+        }
+
+        .details-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .details-list::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .details-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .details-list::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .detail-item:hover {
+            border-color: var(--primary-light);
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-dimensions {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .detail-dimensions small {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .btn-remove {
+            background: rgba(239, 68, 68, 0.1);
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 6px 10px;
+            font-size: 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-remove:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: scale(1.1);
+        }
+
+        .algorithm-settings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+.algorithm-settings .slider-container{
+    display:grid;                             /* вместо flex  */
+    grid-template-columns:1fr auto;           /* ↔ слайдер | значение */
+    gap:12px;
+    align-items:center;
+    width:100%;
+}
+
+.algorithm-settings .slider{ min-width:0; }   /* даём слайдеру сжиматься */
+
+        .slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border-color);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(67, 56, 202, 0.3);
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(67, 56, 202, 0.5);
+        }
+
+        .slider-value {
+            min-width: 60px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 14px;
+            background: rgba(67, 56, 202, 0.1);
+            padding: 6px 8px;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .stat-item:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+	btn-danger,
+	.btn-danger i { color:#fff !important; }
+.btn-danger:hover,
+.btn-danger:hover i { color:#fff !important; }
+
+        .visualization-container {
+            background: var(--glass-bg);
+            backdrop-filter: var(--backdrop-filter);
+            -webkit-backdrop-filter: var(--backdrop-filter);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--squircle-radius);
+            box-shadow: var(--glass-shadow);
+            padding: 24px;
+            min-height: calc(100vh - var(--header-height) - 40px);
+        }
+
+        .visualization-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .visualization-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .visualization-title i {
+            color: var(--element-color);
+        }
+
+        .visualization-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .glass-sheets-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .sheet-wrapper {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .sheet-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .sheet-title i {
+            color: var(--element-color);
+        }
+
+        .sheet-info {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            flex-wrap: wrap;
+        }
+
+        .sheet-efficiency {
+            color: var(--number-color);
+            font-weight: 600;
+        }
+
+        .glass-sheet {
+            position: relative;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .detail {
+            position: absolute;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            background: var(--detail-normal);
+            border-radius: 8px;
+        }
+
+        .detail.rotated {
+            background: var(--detail-rotated);
+        }
+
+        .detail:hover {
+            z-index: 100;
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .detail-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .detail-number {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--dark-bg);
+            margin-bottom: 2px;
+        }
+
+        .detail-info {
+            font-size: 11px;
+            color: #424242;
+        }
+
+        .rotation-badge {
+            display: inline-block;
+            color: var(--element-color);
+            font-weight: 700;
+            margin-left: 2px;
+        }
+
+        .scrap {
+            position: absolute;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(245, 87, 108, 0.1) 10px,
+                rgba(245, 87, 108, 0.1) 20px
+            );
+            border: 2px dashed rgba(245, 87, 108, 0.5);
+            border-radius: 6px;
+            opacity: 0.7;
+        }
+
+        .scrap.usable {
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(54, 209, 220, 0.1) 10px,
+                rgba(54, 209, 220, 0.1) 20px
+            );
+            border-color: rgba(54, 209, 220, 0.5);
+            opacity: 0.8;
+        }
+
+        .scrap-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #f5576c;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .scrap.usable .scrap-label {
+            color: var(--number-color);
+        }
+
+        .scrap-label.vertical {
+            transform: translate(-50%, -50%) rotate(-90deg);
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideDown 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-error {
+            background: rgba(211, 47, 47, 0.2);
+            color: #ff5252;
+            border-color: rgba(211, 47, 47, 0.3);
+        }
+
+        .alert-success {
+            background: rgba(95, 133, 219, 0.2);
+            color: var(--number-color);
+            border-color: rgba(95, 133, 219, 0.3);
+        }
+
+        .alert-info {
+            background: rgba(144, 202, 249, 0.2);
+            color: var(--number-color);
+            border-color: rgba(144, 202, 249, 0.3);
+        }
+
+        .alert-warning {
+            background: rgba(255, 183, 77, 0.2);
+            color: #ffb74d;
+            border-color: rgba(255, 183, 77, 0.3);
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background: rgba(26, 26, 46, 0.95);
+            color: white;
+            text-align: center;
+            padding: 10px 14px;
+            border-radius: 10px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            font-weight: 400;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--element-color);
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(95, 133, 219, 0.5);
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 24px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: wrap;
+        }
+
+        .pagination-info {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pagination-button {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .pagination-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .pagination-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .pagination-button.active {
+            background: var(--element-color);
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(95, 133, 219, 0.4);
+        }
+
+        .sheets-per-page {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sheets-per-page select {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .sheets-per-page select option {
+            background: #8B5CF6;
+            color: white;
+        }
+
+        /* Мобильная адаптация */
+        @media (max-width: 768px) {
+            :root {
+                --header-height: var(--mobile-header-height);
+                --squircle-radius: 20px;
+            }
+
+            .welcome-card {
+                padding: 40px 30px;
+            }
+
+            .welcome-title {
+                font-size: 28px;
+            }
+
+            .welcome-subtitle {
+                font-size: 14px;
+            }
+
+            .welcome-logo {
+                width: 80px;
+                height: 80px;
+                margin-bottom: 24px;
+            }
+
+            .welcome-logo i {
+                font-size: 40px;
+            }
+
+            .header {
+                padding: 0 16px;
+                height: auto;
+                min-height: var(--mobile-header-height);
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px 0;
+            }
+
+            .logo h1 {
+                font-size: 16px;
+            }
+
+            .logo-icon {
+                width: 36px;
+                height: 36px;
+            }
+
+            .logo-icon i {
+                font-size: 18px;
+            }
+
+            .header-stats {
+                gap: 8px;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .header-stat {
+                padding: 6px 12px;
+                flex: 1;
+                text-align: center;
+            }
+
+            .header-stat-value {
+                font-size: 16px;
+            }
+
+            .header-stat-label {
+                font-size: 10px;
+            }
+
+            .main-container {
+                padding: 16px;
+                margin-top: auto;
+            }
+
+            .layout-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .sidebar {
+                max-width: 100%;
+            }
+
+            .card-header {
+                padding: 16px 20px;
+            }
+
+            .card-body {
+                padding: 20px;
+            }
+
+            .tabs {
+                gap: 4px;
+                padding: 4px;
+            }
+
+            .tab {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .algorithm-settings {
+                grid-template-columns: 1fr;
+            }
+
+            .visualization-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+
+            .visualization-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+
+            .btn-lg {
+                padding: 14px 24px;
+                font-size: 15px;
+            }
+
+            .pagination-container {
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .pagination-controls {
+                gap: 4px;
+            }
+
+            .pagination-button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .sheets-per-page {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .stat-value {
+                font-size: 18px;
+            }
+
+            .detail-label {
+                font-size: 10px;
+                padding: 4px 6px;
+            }
+
+            .detail-number {
+                font-size: 12px;
+            }
+
+            .detail-info {
+                font-size: 9px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .welcome-card {
+                padding: 30px 20px;
+            }
+
+            .welcome-title {
+                font-size: 24px;
+            }
+
+            .welcome-features {
+                gap: 12px;
+            }
+
+            .welcome-feature {
+                padding: 12px;
+            }
+
+            .welcome-feature i {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+
+            .welcome-feature-text {
+                font-size: 13px;
+            }
+
+            .header {
+                padding: 8px;
+            }
+
+            .header-content {
+                gap: 8px;
+                padding: 8px 0;
+            }
+
+            .header-stats {
+                width: 100%;
+                justify-content: space-between;
+                gap: 4px;
+            }
+
+            .header-stat {
+                padding: 8px 4px;
+                min-width: 0;
+                flex: 1;
+            }
+
+            .header-stat-value {
+                font-size: 14px;
+                line-height: 1;
+            }
+
+            .header-stat-label {
+                font-size: 9px;
+                line-height: 1.2;
+            }
+
+            .visualization-controls .btn {
+                flex: 1;
+                padding: 8px 12px;
+            }
+
+            .btn i {
+                display: none;
+            }
+
+            .input-group {
+                flex-wrap: wrap;
+            }
+
+            .input-group .form-control {
+                width: calc(50% - 5px);
+            }
+
+            .algorithm-settings .btn-secondary {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+        }
+
+        /* Анимация пульсации для кнопки оптимизации */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(95, 133, 219, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(95, 133, 219, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(95, 133, 219, 0);
+            }
+        }
+
+        .btn-success.btn-lg {
+            animation: pulse 2s infinite;
+        }
+
+        .btn-success.btn-lg:hover {
+            animation: none;
+        }
+
+        /* Анимация появления деталей */
+        .detail-item {
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Улучшенные скроллбары для всего приложения */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Эффект свечения для активных элементов */
+        .form-control:focus,
+        .btn-primary:active,
+        .tab.active {
+            box-shadow: 0 0 20px rgba(95, 133, 219, 0.4);
+        }
+
+        /* Smooth transitions для всех интерактивных элементов */
+        input, button, select, textarea, .detail-item, .stat-item, .sheet-wrapper {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Приветственная страница -->
+    <div class="welcome-container" id="welcome">
+        <div class="welcome-card">
+            <div class="welcome-logo">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <h1 class="welcome-title">Оптимизация раскроя</h1>
+            <p class="welcome-subtitle">Интеллектуальная собственность принадлежит компании ООО «Софтофсейл»</p>
+            
+            <div class="welcome-features">
+                <div class="welcome-feature">
+                    <span style="position: absolute; top: 10px; left: 10px; font-size: 12px; color: var(--text-secondary);">1</span>
+                    <i class="fas fa-robot"></i>
+                    <span class="welcome-feature-text">Генетический алгоритм для раскроя листового материала</span>
+                </div>
+                <div class="welcome-feature">
+                    <span style="position: absolute; top: 10px; left: 10px; font-size: 12px; color: var(--text-secondary);">2</span>
+                    <i class="fas fa-mobile-alt"></i>
+                    <span class="welcome-feature-text">Адаптивный интерфейс для любых устройств</span>
+                </div>
+                <div class="welcome-feature">
+                    <span style="position: absolute; top: 10px; left: 10px; font-size: 12px; color: var(--text-secondary);">3</span>
+                    <i class="fas fa-building"></i>
+                    <span class="welcome-feature-text">ООО «Софтофсейл»</span>
+                </div>
+            </div>
+            
+            <button class="btn-enter" onclick="enterSystem()">
+                Войти в систему
+            </button>
+        </div>
+    </div>
+
+    <!-- Основное приложение -->
+    <div class="main-app" id="main-app">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <h1>Оптимизация раскроя</h1>
+                </div>
+                <div class="header-stats">
+                    <div class="header-stat">
+                        <div class="header-stat-value" id="header-efficiency">0%</div>
+                        <div class="header-stat-label">Эффективность</div>
+                    </div>
+                    <div class="header-stat">
+                        <div class="header-stat-value" id="header-sheets">0</div>
+                        <div class="header-stat-label">Листов</div>
+                    </div>
+                    <div class="header-stat">
+                        <div class="header-stat-value" id="header-details">0</div>
+                        <div class="header-stat-label">Деталей</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <div class="layout-grid">
+                <aside class="sidebar">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <i class="fas fa-cog"></i>
+                                Параметры раскроя
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="tabs">
+                                <button class="tab active" onclick="switchTab('basic')">
+                                    <i class="fas fa-cube"></i> Основные
+                                </button>
+                                <button class="tab" onclick="switchTab('algorithm')">
+                                    <i class="fas fa-dna"></i> Алгоритм
+                                </button>
+                            </div>
+
+                            <div id="basic-tab" class="tab-content active">
+                                <div class="form-group">
+                                    <label>
+                                        <i class="fas fa-expand"></i>
+                                        Размер листа (мм)
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="number" id="sheet-width" class="form-control" value="2500" min="1" placeholder="Ширина">
+                                        <span>×</span>
+                                        <input type="number" id="sheet-height" class="form-control" value="1600" min="1" placeholder="Высота">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>
+                                        <i class="fas fa-shapes"></i>
+                                        Добавить деталь
+                                    </label>
+                                    <div class="input-group" style="margin-bottom: 12px;">
+                                        <input type="number" id="detail-width" class="form-control" placeholder="Ширина" min="1">
+                                        <span>×</span>
+                                        <input type="number" id="detail-height" class="form-control" placeholder="Высота" min="1">
+                                        <input type="number" id="detail-quantity" class="form-control" value="1" min="1" style="max-width: 80px;" placeholder="Кол-во">
+                                    </div>
+                                    <button class="btn btn-primary btn-block" onclick="addDetail()">
+                                        <i class="fas fa-plus"></i>
+                                        Добавить деталь
+                                    </button>
+                                </div>
+
+                                <div id="error" class="alert alert-error"></div>
+                                <div id="success" class="alert alert-success"></div>
+                                <div id="info" class="alert alert-info"></div>
+                                <div id="warning" class="alert alert-warning"></div>
+
+                                <div class="form-group">
+                                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span><i class="fas fa-list"></i> Список деталей</span>
+                                        <button class="btn btn-danger btn-sm" onclick="clearDetails()">
+                                            <i class="fas fa-trash"></i> Очистить
+                                        </button>
+                                    </label>
+                                    <div class="details-list" id="details-list"></div>
+                                </div>
+                            </div>
+
+                            <div id="algorithm-tab" class="tab-content">
+                                <div class="algorithm-settings">
+                                    <div class="form-group">
+                                        <label class="tooltip">
+                                            Размер популяции
+                                            <span class="tooltip-text">Количество решений в каждом поколении</span>
+                                        </label>
+                                        <div class="slider-container">
+                                            <input type="range" id="population-size" class="slider" min="100" max="2000" value="1000" step="100">
+                                            <span class="slider-value" id="population-size-value">1000</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="tooltip">
+                                            Количество поколений
+                                            <span class="tooltip-text">Максимальное число итераций алгоритма</span>
+                                        </label>
+                                        <div class="slider-container">
+                                            <input type="range" id="generations" class="slider" min="10" max="200" value="50" step="10">
+                                            <span class="slider-value" id="generations-value">50</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="tooltip">
+                                            Коэффициент мутации
+                                            <span class="tooltip-text">Вероятность случайных изменений в решении</span>
+                                        </label>
+                                        <div class="slider-container">
+                                            <input type="range" id="mutation-rate" class="slider" min="0" max="50" value="15" step="1">
+                                            <span class="slider-value" id="mutation-rate-value">15%</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="tooltip">
+                                            Коэффициент элитизма
+                                            <span class="tooltip-text">Процент лучших решений, переходящих в следующее поколение</span>
+                                        </label>
+                                        <div class="slider-container">
+                                            <input type="range" id="elitism-rate" class="slider" min="0" max="30" value="10" step="1">
+                                            <span class="slider-value" id="elitism-rate-value">10%</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="tooltip">
+                                            Размер турнира
+                                            <span class="tooltip-text">Количество решений для турнирной селекции</span>
+                                        </label>
+                                        <div class="slider-container">
+                                            <input type="range" id="tournament-size" class="slider" min="2" max="10" value="4" step="1">
+                                            <span class="slider-value" id="tournament-size-value">4</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="tooltip">
+                                            Мин. ширина остатка
+                                            <span class="tooltip-text">Минимальная ширина полезного остатка (мм)</span>
+                                        </label>
+                                        <input type="number" id="min-scrap-width" class="form-control" value="0" min="0" max="500">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="tooltip">
+                                            Мин. высота остатка
+                                            <span class="tooltip-text">Минимальная высота полезного остатка (мм)</span>
+                                        </label>
+                                        <input type="number" id="min-scrap-height" class="form-control" value="0" min="0" max="500">
+                                    </div>
+                                    
+                                    <div style="grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <button class="btn btn-secondary" onclick="setMinScrapSize(0, 0)" style="padding: 8px 12px; font-size: 12px;">
+                                            <i class="fas fa-infinity"></i> Все
+                                        </button>
+                                        <button class="btn btn-secondary" onclick="setMinScrapSize(100, 100)" style="padding: 8px 12px; font-size: 12px;">
+                                            100×100
+                                        </button>
+                                        <button class="btn btn-secondary" onclick="setMinScrapSize(200, 200)" style="padding: 8px 12px; font-size: 12px;">
+                                            200×200
+                                        </button>
+                                        <button class="btn btn-secondary" onclick="setMinScrapSize(250, 250)" style="padding: 8px 12px; font-size: 12px;">
+                                            250×250
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-secondary btn-block" onclick="resetAlgorithmSettings()" style="margin-top: 16px;">
+                                    <i class="fas fa-undo"></i>
+                                    Сбросить настройки
+                                </button>
+                            </div>
+
+                            <button class="btn btn-success btn-block btn-lg tooltip" onclick="optimize()" style="margin-top: 24px;">
+                                <i class="fas fa-magic"></i>
+                                Оптимизировать раскрой
+                                <div class="spinner" id="optimize-spinner"></div>
+                                <span class="tooltip-text">Ctrl+Enter для быстрого запуска</span>
+                            </button>
+                            <div class="progress-bar" id="optimization-progress" style="display: none;">
+                                <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <i class="fas fa-chart-bar"></i>
+                                Статистика
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-label">Эффективность</div>
+                                    <div class="stat-value" id="efficiency">0%</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Листов</div>
+                                    <div class="stat-value" id="sheets-count">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Площадь деталей</div>
+                                    <div class="stat-value" id="used-area">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Площадь отходов</div>
+                                    <div class="stat-value" id="waste-area">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Полезные остатки</div>
+                                    <div class="stat-value" id="usable-scrap">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Время расчета</div>
+                                    <div class="stat-value" id="execution-time">0 с</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <main class="visualization-container">
+                    <div class="visualization-header">
+                        <h2 class="visualization-title">
+                            <i class="fas fa-th"></i>
+                            Визуализация раскроя
+                        </h2>
+                        <div class="visualization-controls">
+                            <button class="btn btn-secondary" onclick="clearResults()">
+                                <i class="fas fa-eraser"></i>
+                                Очистить
+                            </button>
+                            <button class="btn btn-secondary" onclick="importResults()">
+                                <i class="fas fa-upload"></i>
+                                Импорт
+                            </button>
+                            <button class="btn btn-secondary" onclick="exportResults()">
+                                <i class="fas fa-download"></i>
+                                Экспорт
+                            </button>
+                            <button class="btn btn-secondary" onclick="printResults()">
+                                <i class="fas fa-print"></i>
+                                Печать
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="pagination-container" id="pagination-container" style="display: none;">
+                        <div class="sheets-per-page">
+                            <label>Листов на странице:</label>
+                            <select id="sheets-per-page" onchange="changePageSize()">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                        <div class="pagination-info" id="pagination-info">
+                            Показано 0-0 из 0 листов
+                        </div>
+                        <div class="pagination-controls" id="pagination-controls">
+                            <button class="pagination-button" onclick="goToFirstPage()">
+                                <i class="fas fa-angle-double-left"></i>
+                            </button>
+                            <button class="pagination-button" onclick="goToPrevPage()">
+                                <i class="fas fa-angle-left"></i>
+                            </button>
+                            <div id="page-numbers"></div>
+                            <button class="pagination-button" onclick="goToNextPage()">
+                                <i class="fas fa-angle-right"></i>
+                            </button>
+                            <button class="pagination-button" onclick="goToLastPage()">
+                                <i class="fas fa-angle-double-right"></i>
+                            </button>
+                        </div>
+                        <div style="margin-left: 20px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-light);">
+                                <input type="checkbox" id="show-scraps" checked onchange="toggleScraps()">
+                                Показывать остатки
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="glass-sheets" class="glass-sheets-container">
+                        <div style="text-align: center; color: var(--text-light); padding: 100px 20px;">
+                            <i class="fas fa-layer-group" style="font-size: 64px; opacity: 0.3; margin-bottom: 20px;"></i>
+                            <p style="font-size: 18px; margin-bottom: 10px;">Добавьте детали и нажмите «Оптимизировать раскрой»</p>
+                            <p style="font-size: 14px; opacity: 0.7;">Используйте вкладку «Основные» для добавления деталей</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let details = [];
+        let currentResult = null;
+        let currentPage = 1;
+        let sheetsPerPage = 10;
+        let totalSheets = 0;
+        let processedSolution = null;
+        let showScraps = true;
+        
+        let algorithmSettings = {
+            populationSize: 1000,
+            generations: 50,
+            mutationRate: 0.15,
+            elitismRate: 0.1,
+            tournamentSize: 4,
+            minScrapWidth: 0,
+            minScrapHeight: 0
+        };
+
+        // Функция входа в систему
+        function enterSystem() {
+            document.getElementById('welcome').style.display = 'none';
+            document.getElementById('main-app').classList.add('active');
+            initializeApp();
+        }
+
+        function initializeApp() {
+            updateDetailsList();
+            updateHeaderStats();
+            initializeSliders();
+
+            // Обработчики событий
+            window.addEventListener('resize', function() {
+                if (currentResult && processedSolution) {
+                    displayCurrentPage();
+                }
+            });
+
+            // Глобальные горячие клавиши
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+Enter или Cmd+Enter для оптимизации
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    optimize();
+                }
+                // Escape для закрытия уведомлений
+                if (e.key === 'Escape') {
+                    document.getElementById('error').style.display = 'none';
+                    document.getElementById('success').style.display = 'none';
+                    document.getElementById('info').style.display = 'none';
+                    document.getElementById('warning').style.display = 'none';
+                }
+            });
+
+            document.querySelectorAll('.form-control').forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        if (input.id === 'sheet-width' || input.id === 'sheet-height') {
+                            document.getElementById('detail-width').focus();
+                        } else {
+                            addDetail();
+                        }
+                    }
+                });
+            });
+        }
+
+        function initializeSliders() {
+            const sliders = [
+                { id: 'population-size', valueId: 'population-size-value', suffix: '' },
+                { id: 'generations', valueId: 'generations-value', suffix: '' },
+                { id: 'mutation-rate', valueId: 'mutation-rate-value', suffix: '%' },
+                { id: 'elitism-rate', valueId: 'elitism-rate-value', suffix: '%' },
+                { id: 'tournament-size', valueId: 'tournament-size-value', suffix: '' }
+            ];
+
+            sliders.forEach(slider => {
+                const input = document.getElementById(slider.id);
+                const valueDisplay = document.getElementById(slider.valueId);
+                
+                input.addEventListener('input', function() {
+                    valueDisplay.textContent = this.value + slider.suffix;
+                    updateAlgorithmSettings();
+                });
+            });
+
+            document.getElementById('min-scrap-width').addEventListener('change', async function() {
+                updateAlgorithmSettings();
+                if (currentResult && processedSolution) {
+                    await processAndVisualize(currentResult.data, 
+                                   parseInt(document.getElementById('sheet-width').value), 
+                                   parseInt(document.getElementById('sheet-height').value));
+                    displayCurrentPage();
+                    showInfo('Изменение минимальных размеров влияет только на визуализацию. Для применения новых настроек запустите оптимизацию заново.');
+                }
+            });
+            document.getElementById('min-scrap-height').addEventListener('change', async function() {
+                updateAlgorithmSettings();
+                if (currentResult && processedSolution) {
+                    await processAndVisualize(currentResult.data, 
+                                   parseInt(document.getElementById('sheet-width').value), 
+                                   parseInt(document.getElementById('sheet-height').value));
+                    displayCurrentPage();
+                    showInfo('Изменение минимальных размеров влияет только на визуализацию. Для применения новых настроек запустите оптимизацию заново.');
+                }
+            });
+        }
+
+        function updateAlgorithmSettings() {
+            algorithmSettings = {
+                populationSize: parseInt(document.getElementById('population-size').value),
+                generations: parseInt(document.getElementById('generations').value),
+                mutationRate: parseInt(document.getElementById('mutation-rate').value) / 100,
+                elitismRate: parseInt(document.getElementById('elitism-rate').value) / 100,
+                tournamentSize: parseInt(document.getElementById('tournament-size').value),
+                minScrapWidth: parseInt(document.getElementById('min-scrap-width').value),
+                minScrapHeight: parseInt(document.getElementById('min-scrap-height').value)
+            };
+        }
+
+        async function setMinScrapSize(width, height) {
+            document.getElementById('min-scrap-width').value = width;
+            document.getElementById('min-scrap-height').value = height;
+            updateAlgorithmSettings();
+            
+            if (currentResult && processedSolution) {
+                await processAndVisualize(currentResult.data, 
+                               parseInt(document.getElementById('sheet-width').value), 
+                               parseInt(document.getElementById('sheet-height').value));
+                displayCurrentPage();
+                
+                if (width > 0 || height > 0) {
+                    showInfo('Изменение минимальных размеров влияет только на визуализацию. Для применения новых настроек запустите оптимизацию заново.');
+                }
+            }
+        }
+
+        async function resetAlgorithmSettings() {
+            document.getElementById('population-size').value = 1000;
+            document.getElementById('generations').value = 50;
+            document.getElementById('mutation-rate').value = 15;
+            document.getElementById('elitism-rate').value = 10;
+            document.getElementById('tournament-size').value = 4;
+            document.getElementById('min-scrap-width').value = 0;
+            document.getElementById('min-scrap-height').value = 0;
+
+            document.getElementById('population-size-value').textContent = '1000';
+            document.getElementById('generations-value').textContent = '50';
+            document.getElementById('mutation-rate-value').textContent = '15%';
+            document.getElementById('elitism-rate-value').textContent = '10%';
+            document.getElementById('tournament-size-value').textContent = '4';
+
+            updateAlgorithmSettings();
+            
+            if (currentResult && processedSolution) {
+                await processAndVisualize(currentResult.data, 
+                               parseInt(document.getElementById('sheet-width').value), 
+                               parseInt(document.getElementById('sheet-height').value));
+                displayCurrentPage();
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.closest('.tab').classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function addDetail() {
+            const width = parseInt(document.getElementById('detail-width').value);
+            const height = parseInt(document.getElementById('detail-height').value);
+            const quantity = parseInt(document.getElementById('detail-quantity').value) || 1;
+
+            if (!width || !height) {
+                showError('Введите размеры детали');
+                return;
+            }
+
+            if (width <= 0 || height <= 0) {
+                showError('Размеры детали должны быть положительными');
+                return;
+            }
+
+            const sheetWidth = parseInt(document.getElementById('sheet-width').value);
+            const sheetHeight = parseInt(document.getElementById('sheet-height').value);
+
+            if ((width > sheetWidth && width > sheetHeight) || (height > sheetWidth && height > sheetHeight)) {
+                showError('Деталь слишком большая для листа даже при повороте');
+                return;
+            }
+
+            for (let i = 0; i < quantity; i++) {
+                details.push({ width, height });
+            }
+
+            updateDetailsList();
+            updateHeaderStats();
+            resetInputs();
+            showSuccess(`Добавлено ${quantity} деталь(ей)`);
+        }
+
+        function resetInputs() {
+            document.getElementById('detail-width').value = '';
+            document.getElementById('detail-height').value = '';
+            document.getElementById('detail-quantity').value = '1';
+            document.getElementById('detail-width').focus();
+        }
+
+        function updateDetailsList() {
+            const list = document.getElementById('details-list');
+            let uniqueDetails = {};
+            
+            details.forEach(detail => {
+                const key = `${detail.width}x${detail.height}`;
+                if (!uniqueDetails[key]) {
+                    uniqueDetails[key] = { width: detail.width, height: detail.height, count: 1 };
+                } else {
+                    uniqueDetails[key].count++;
+                }
+            });
+
+            list.innerHTML = Object.entries(uniqueDetails).map(([key, detail]) => `
+                <div class="detail-item">
+                    <span class="detail-dimensions">
+                        ${detail.width} × ${detail.height} мм
+                        ${detail.count > 1 ? `<small>(${detail.count} шт.)</small>` : ''}
+                    </span>
+                    <button class="btn-remove" onclick="removeDetail('${key}')" title="Удалить">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function removeDetail(key) {
+            const [width, height] = key.split('x').map(Number);
+            const index = details.findIndex(d => d.width === width && d.height === height);
+            if (index !== -1) {
+                details.splice(index, 1);
+                updateDetailsList();
+                updateHeaderStats();
+            }
+        }
+
+        function clearDetails() {
+            if (confirm('Удалить все детали из списка?')) {
+                details = [];
+                updateDetailsList();
+                updateHeaderStats();
+                showSuccess('Список деталей очищен');
+            }
+        }
+
+        function updateHeaderStats() {
+            document.getElementById('header-details').textContent = details.length;
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+            setTimeout(() => { error.style.display = 'none'; }, 5000);
+        }
+
+        function showSuccess(message) {
+            const success = document.getElementById('success');
+            success.textContent = message;
+            success.style.display = 'block';
+            setTimeout(() => { success.style.display = 'none'; }, 3000);
+        }
+
+        function showInfo(message) {
+            const info = document.getElementById('info');
+            info.textContent = message;
+            info.style.display = 'block';
+            setTimeout(() => { info.style.display = 'none'; }, 5000);
+        }
+
+        function showWarning(message) {
+            const warning = document.getElementById('warning');
+            warning.textContent = message;
+            warning.style.display = 'block';
+            setTimeout(() => { warning.style.display = 'none'; }, 5000);
+        }
+
+        function updateStats(stats) {
+            document.getElementById('efficiency').textContent = `${stats.efficiency}%`;
+            document.getElementById('sheets-count').textContent = stats.sheetsCount;
+            document.getElementById('used-area').textContent = `${formatNumber(stats.usedArea)} мм²`;
+            document.getElementById('waste-area').textContent = `${formatNumber(stats.wasteArea)} мм²`;
+            
+            const usableScrapText = stats.usableScrap > 0 ? 
+                `${formatNumber(stats.usableScrap)} мм²` : 
+                '0 мм²';
+            document.getElementById('usable-scrap').textContent = usableScrapText;
+            
+            document.getElementById('execution-time').textContent = stats.executionTime ? `${stats.executionTime} с` : '0 с';
+            
+            // Обновляем статистику в заголовке
+            document.getElementById('header-efficiency').textContent = `${stats.efficiency}%`;
+            document.getElementById('header-sheets').textContent = stats.sheetsCount;
+        }
+
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
+
+        async function optimize() {
+            if (details.length === 0) {
+                showError('Добавьте хотя бы одну деталь');
+                return;
+            }
+
+            const sheetWidth = parseInt(document.getElementById('sheet-width').value);
+            const sheetHeight = parseInt(document.getElementById('sheet-height').value);
+            const optimizeButton = document.querySelector('.btn-success');
+            const spinner = document.getElementById('optimize-spinner');
+            const progressBar = document.getElementById('optimization-progress');
+            const progressFill = document.getElementById('progress-fill');
+
+            try {
+                optimizeButton.disabled = true;
+                optimizeButton.classList.add('loading');
+                spinner.style.display = 'inline-block';
+                progressBar.style.display = 'block';
+                progressFill.style.width = '20%';
+
+                const requestData = {
+                    sheetWidth,
+                    sheetHeight,
+                    details,
+                    algorithmSettings
+                };
+
+                progressFill.style.width = '40%';
+
+                const response = await fetch('optimize.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+
+                progressFill.style.width = '80%';
+
+                const text = await response.text();
+                
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    console.error('Ошибка парсинга JSON:', e);
+                    throw new Error('Некорректный ответ от сервера');
+                }
+                
+                progressFill.style.width = '100%';
+
+                if (result.success) {
+                    currentResult = result;
+                    
+                    // Проверяем количество листов
+                    const sheetsCount = result.stats.sheetsCount;
+                    if (sheetsCount > 100) {
+                        showWarning(`Внимание: создано ${sheetsCount} листов. Визуализация может занять время.`);
+                    }
+                    
+                    // Визуализируем
+                    await visualizeResult(result.data, sheetWidth, sheetHeight);
+                    updateStats(result.stats);
+                    showSuccess('Оптимизация завершена успешно!');
+                } else {
+                    showError(result.message || 'Ошибка оптимизации');
+                }
+
+            } catch (error) {
+                showError('Ошибка при выполнении оптимизации: ' + error.message);
+                console.error('Error:', error);
+            } finally {
+                optimizeButton.disabled = false;
+                optimizeButton.classList.remove('loading');
+                spinner.style.display = 'none';
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 500);
+            }
+        }
+
+        async function visualizeResult(solution, sheetWidth, sheetHeight) {
+            const container = document.getElementById('glass-sheets');
+            
+            container.innerHTML = '';
+            
+            await processAndVisualize(solution, sheetWidth, sheetHeight);
+            
+            document.getElementById('pagination-container').style.display = 'flex';
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            displayCurrentPage();
+        }
+        
+        async function processAndVisualize(solution, sheetWidth, sheetHeight) {
+            return new Promise((resolve) => {
+                totalSheets = 0;
+                
+                solution.forEach(d => {
+                    if (d.sheet > totalSheets) {
+                        totalSheets = d.sheet;
+                    }
+                });
+                totalSheets++;
+                
+                processedSolution = {
+                    sheets: [],
+                    sheetWidth,
+                    sheetHeight
+                };
+                
+                for (let i = 0; i < totalSheets; i++) {
+                    const sheetDetails = solution.filter(d => d.sheet === i);
+                    let usedArea = 0;
+                    sheetDetails.forEach(detail => {
+                        usedArea += detail.width * detail.height;
+                    });
+                    
+                    const totalArea = sheetWidth * sheetHeight;
+                    const efficiency = (usedArea / totalArea) * 100;
+                    
+                    // Анализируем остатки
+                    let freeSpaces = [];
+                    let totalScraps = 0;
+                    let usableScraps = 0;
+                    
+                    const occupiedSpaces = sheetDetails.map(detail => ({
+                        x: detail.x,
+                        y: detail.y,
+                        width: detail.width,
+                        height: detail.height
+                    }));
+                    
+                    freeSpaces = findFreeSpaces(sheetWidth, sheetHeight, occupiedSpaces);
+                    
+                    const processedFreeSpaces = freeSpaces.filter(space => space.width >= 10 && space.height >= 10).map(space => {
+                        totalScraps++;
+                        
+                        let isUsable = false;
+                        if (algorithmSettings.minScrapWidth == 0 && algorithmSettings.minScrapHeight == 0) {
+                            isUsable = true;
+                        } else {
+                            if ((space.width >= algorithmSettings.minScrapWidth && 
+                                 space.height >= algorithmSettings.minScrapHeight) ||
+                                (space.width >= algorithmSettings.minScrapHeight && 
+                                 space.height >= algorithmSettings.minScrapWidth)) {
+                                isUsable = true;
+                            }
+                        }
+                        
+                        if (isUsable) usableScraps++;
+                        
+                        return { ...space, isUsable };
+                    });
+                    
+                    processedSolution.sheets.push({
+                        index: i,
+                        details: sheetDetails,
+                        efficiency,
+                        usedArea,
+                        totalScraps,
+                        usableScraps,
+                        freeSpaces: processedFreeSpaces
+                    });
+                }
+                
+                currentPage = 1;
+                updatePagination();
+                resolve();
+            });
+        }
+
+        function toggleScraps() {
+            showScraps = document.getElementById('show-scraps').checked;
+            displayCurrentPage();
+        }
+
+        function displayCurrentPage() {
+            const container = document.getElementById('glass-sheets');
+            container.innerHTML = '';
+            
+            if (!processedSolution || !processedSolution.sheets || processedSolution.sheets.length === 0) {
+                return;
+            }
+            
+            const startIndex = (currentPage - 1) * sheetsPerPage;
+            const endIndex = Math.min(startIndex + sheetsPerPage, totalSheets);
+            
+            const containerWidth = container.clientWidth - 40;
+            const scale = Math.min(containerWidth / processedSolution.sheetWidth, 0.5);
+            
+            const colors = {
+	        normal : 'var(--detail-normal)',
+                rotated: 'var(--detail-rotated)'
+            };
+            
+            const fragment = document.createDocumentFragment();
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                const sheetData = processedSolution.sheets[i];
+                if (!sheetData) continue;
+                
+                const sheetWrapper = document.createElement('div');
+                sheetWrapper.className = 'sheet-wrapper';
+                sheetWrapper.style.animationDelay = `${(i - startIndex) * 0.05}s`;
+                
+                sheetWrapper.innerHTML = `
+                    <div class="sheet-header">
+                        <div class="sheet-title">
+                            <i class="fas fa-file"></i> Лист ${i + 1}
+                        </div>
+                        <div class="sheet-info">
+                            <span>${processedSolution.sheetWidth} × ${processedSolution.sheetHeight} мм</span>
+                            <span class="sheet-efficiency">${sheetData.efficiency.toFixed(1)}% использовано</span>
+                            <span>${sheetData.details.length} деталей</span>
+                            ${showScraps ? `<span>${sheetData.usableScraps}/${sheetData.totalScraps} полезных остатков</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                const sheet = document.createElement('div');
+                sheet.className = 'glass-sheet';
+                sheet.style.width = `${processedSolution.sheetWidth * scale}px`;
+                sheet.style.height = `${processedSolution.sheetHeight * scale}px`;
+                
+                // Отображаем остатки
+                if (showScraps && sheetData.freeSpaces) {
+                    sheetData.freeSpaces.forEach(space => {
+                        const scrapDiv = document.createElement('div');
+                        scrapDiv.className = space.isUsable ? 'scrap usable' : 'scrap';
+                        scrapDiv.style.left = `${space.x * scale}px`;
+                        scrapDiv.style.top = `${space.y * scale}px`;
+                        scrapDiv.style.width = `${space.width * scale}px`;
+                        scrapDiv.style.height = `${space.height * scale}px`;
+                        
+                        const label = document.createElement('div');
+                        label.className = 'scrap-label';
+                        if (space.height > space.width * 2) {
+                            label.classList.add('vertical');
+                        }
+                        label.textContent = `${space.width} × ${space.height}`;
+                        scrapDiv.appendChild(label);
+                        sheet.appendChild(scrapDiv);
+                    });
+                }
+                
+                // Добавляем детали
+                let detailIndex = 0;
+                sheetData.details.forEach((detail) => {
+                    const detailDiv = document.createElement('div');
+                    detailDiv.className = detail.rotation ? 'detail rotated' : 'detail';
+                    detailDiv.style.background = detail.rotation ? colors.rotated : colors.normal;
+                    detailDiv.style.left = `${detail.x * scale}px`;
+                    detailDiv.style.top = `${detail.y * scale}px`;
+                    detailDiv.style.width = `${detail.width * scale}px`;
+                    detailDiv.style.height = `${detail.height * scale}px`;
+                    
+                    const label = document.createElement('div');
+                    label.className = 'detail-label';
+                    const ow = detail.originalWidth || detail.width;
+                    const oh = detail.originalHeight || detail.height;
+                    label.innerHTML = `
+                        <div class="detail-number">${++detailIndex}</div>
+                        <div class="detail-info">
+                            ${ow} × ${oh} ${detail.rotation ? '<span class="rotation-badge">↺</span>' : ''}
+                        </div>
+                    `;
+                    
+                    detailDiv.appendChild(label);
+                    sheet.appendChild(detailDiv);
+                });
+                
+                sheetWrapper.appendChild(sheet);
+                fragment.appendChild(sheetWrapper);
+            }
+            
+            container.appendChild(fragment);
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(totalSheets / sheetsPerPage);
+            const startSheet = (currentPage - 1) * sheetsPerPage + 1;
+            const endSheet = Math.min(currentPage * sheetsPerPage, totalSheets);
+            
+            document.getElementById('pagination-info').textContent = 
+                `Показано ${startSheet}-${endSheet} из ${totalSheets} листов`;
+            
+            const pageNumbers = document.getElementById('page-numbers');
+            pageNumbers.innerHTML = '';
+            
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'pagination-button';
+                if (i === currentPage) btn.classList.add('active');
+                btn.textContent = i;
+                btn.onclick = () => goToPage(i);
+                pageNumbers.appendChild(btn);
+            }
+            
+            const prevButtons = document.querySelectorAll('.pagination-button');
+            prevButtons[0].disabled = currentPage === 1;
+            prevButtons[1].disabled = currentPage === 1;
+            prevButtons[prevButtons.length - 2].disabled = currentPage === totalPages;
+            prevButtons[prevButtons.length - 1].disabled = currentPage === totalPages;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            displayCurrentPage();
+            window.scrollTo(0, 0);
+        }
+
+        function goToFirstPage() {
+            goToPage(1);
+        }
+
+        function goToLastPage() {
+            const totalPages = Math.ceil(totalSheets / sheetsPerPage);
+            goToPage(totalPages);
+        }
+
+        function goToPrevPage() {
+            if (currentPage > 1) {
+                goToPage(currentPage - 1);
+            }
+        }
+
+        function goToNextPage() {
+            const totalPages = Math.ceil(totalSheets / sheetsPerPage);
+            if (currentPage < totalPages) {
+                goToPage(currentPage + 1);
+            }
+        }
+
+        function changePageSize() {
+            sheetsPerPage = parseInt(document.getElementById('sheets-per-page').value);
+            currentPage = 1;
+            if (processedSolution) {
+                displayCurrentPage();
+            }
+        }
+
+        function findFreeSpaces(sheetWidth, sheetHeight, occupiedSpaces) {
+            if (occupiedSpaces.length > 50) {
+                return [];
+            }
+            
+            let freeSpaces = [{
+                x: 0,
+                y: 0,
+                width: sheetWidth,
+                height: sheetHeight
+            }];
+
+            occupiedSpaces.forEach(occupied => {
+                const newFreeSpaces = [];
+                
+                freeSpaces.forEach(free => {
+                    if (isIntersecting(free, occupied)) {
+                        const parts = splitArea(free, occupied);
+                        newFreeSpaces.push(...parts);
+                    } else {
+                        newFreeSpaces.push(free);
+                    }
+                });
+                
+                freeSpaces = newFreeSpaces;
+                
+                if (freeSpaces.length > 100) {
+                    freeSpaces.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+                    freeSpaces = freeSpaces.slice(0, 50);
+                }
+            });
+
+            return freeSpaces.filter(space => space.width > 0 && space.height > 0);
+        }
+
+        function isIntersecting(area1, area2) {
+            return !(area1.x + area1.width <= area2.x ||
+                    area2.x + area2.width <= area1.x ||
+                    area1.y + area1.height <= area2.y ||
+                    area2.y + area2.height <= area1.y);
+        }
+
+        function splitArea(free, occupied) {
+            const parts = [];
+            
+            if (occupied.y > free.y) {
+                parts.push({
+                    x: free.x,
+                    y: free.y,
+                    width: free.width,
+                    height: occupied.y - free.y
+                });
+            }
+            
+            if (occupied.y + occupied.height < free.y + free.height) {
+                parts.push({
+                    x: free.x,
+                    y: occupied.y + occupied.height,
+                    width: free.width,
+                    height: (free.y + free.height) - (occupied.y + occupied.height)
+                });
+            }
+            
+            if (occupied.x > free.x) {
+                parts.push({
+                    x: free.x,
+                    y: Math.max(free.y, occupied.y),
+                    width: occupied.x - free.x,
+                    height: Math.min(free.y + free.height, occupied.y + occupied.height) - Math.max(free.y, occupied.y)
+                });
+            }
+            
+            if (occupied.x + occupied.width < free.x + free.width) {
+                parts.push({
+                    x: occupied.x + occupied.width,
+                    y: Math.max(free.y, occupied.y),
+                    width: (free.x + free.width) - (occupied.x + occupied.width),
+                    height: Math.min(free.y + free.height, occupied.y + occupied.height) - Math.max(free.y, occupied.y)
+                });
+            }
+            
+            return parts;
+        }
+
+        function importResults() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = async function(event) {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        if (data.settings) {
+                            document.getElementById('sheet-width').value = data.settings.sheetWidth;
+                            document.getElementById('sheet-height').value = data.settings.sheetHeight;
+                            
+                            if (data.settings.algorithmSettings) {
+                                const settings = data.settings.algorithmSettings;
+                                
+                                document.getElementById('population-size').value = settings.populationSize || 1000;
+                                document.getElementById('generations').value = settings.generations || 50;
+                                document.getElementById('mutation-rate').value = (settings.mutationRate * 100) || 15;
+                                document.getElementById('elitism-rate').value = (settings.elitismRate * 100) || 10;
+                                document.getElementById('tournament-size').value = settings.tournamentSize || 4;
+                                document.getElementById('min-scrap-width').value = settings.minScrapWidth || 0;
+                                document.getElementById('min-scrap-height').value = settings.minScrapHeight || 0;
+                                
+                                document.getElementById('population-size-value').textContent = settings.populationSize || 1000;
+                                document.getElementById('generations-value').textContent = settings.generations || 50;
+                                document.getElementById('mutation-rate-value').textContent = ((settings.mutationRate * 100) || 15) + '%';
+                                document.getElementById('elitism-rate-value').textContent = ((settings.elitismRate * 100) || 10) + '%';
+                                document.getElementById('tournament-size-value').textContent = settings.tournamentSize || 4;
+                                
+                                updateAlgorithmSettings();
+                            }
+                        }
+                        
+                        if (data.details) {
+                            details = data.details;
+                            updateDetailsList();
+                            updateHeaderStats();
+                        }
+                        
+                        if (data.result && data.result.success) {
+                            currentResult = data.result;
+                            await visualizeResult(data.result.data, 
+                                          parseInt(document.getElementById('sheet-width').value), 
+                                          parseInt(document.getElementById('sheet-height').value));
+                            updateStats(data.result.stats);
+                        }
+                        
+                        showSuccess('Данные успешно импортированы');
+                        
+                    } catch (error) {
+                        showError('Ошибка при чтении файла: ' + error.message);
+                    }
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+
+        function exportResults() {
+            if (!currentResult) {
+                showError('Нет результатов для экспорта');
+                return;
+            }
+
+            const data = {
+                settings: {
+                    sheetWidth: parseInt(document.getElementById('sheet-width').value),
+                    sheetHeight: parseInt(document.getElementById('sheet-height').value),
+                    algorithmSettings: {
+                        populationSize: algorithmSettings.populationSize,
+                        generations: algorithmSettings.generations,
+                        mutationRate: algorithmSettings.mutationRate,
+                        elitismRate: algorithmSettings.elitismRate,
+                        tournamentSize: algorithmSettings.tournamentSize,
+                        minScrapWidth: algorithmSettings.minScrapWidth,
+                        minScrapHeight: algorithmSettings.minScrapHeight
+                    }
+                },
+                details: details,
+                result: currentResult,
+                exportDate: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cutting-optimization-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showSuccess('Результаты экспортированы');
+        }
+
+        function clearResults() {
+            currentResult = null;
+            processedSolution = null;
+            totalSheets = 0;
+            currentPage = 1;
+            showScraps = true;
+            document.getElementById('show-scraps').checked = true;
+            
+            document.getElementById('pagination-container').style.display = 'none';
+            document.getElementById('glass-sheets').innerHTML = `
+                <div style="text-align: center; color: var(--text-light); padding: 100px 20px;">
+                    <i class="fas fa-layer-group" style="font-size: 64px; opacity: 0.3; margin-bottom: 20px;"></i>
+                    <p style="font-size: 18px; margin-bottom: 10px;">Добавьте детали и нажмите «Оптимизировать раскрой»"</p>
+                    <p style="font-size: 14px; opacity: 0.7;">Используйте вкладку «Основные» для добавления деталей</p>
+                </div>
+            `;
+            
+            document.getElementById('efficiency').textContent = '0%';
+            document.getElementById('sheets-count').textContent = '0';
+            document.getElementById('used-area').textContent = '0 мм²';
+            document.getElementById('waste-area').textContent = '0 мм²';
+            document.getElementById('usable-scrap').textContent = '0 мм²';
+            document.getElementById('execution-time').textContent = '0 с';
+            
+            document.getElementById('header-efficiency').textContent = '0%';
+            document.getElementById('header-sheets').textContent = '0';
+            
+            showSuccess('Результаты очищены');
+        }
+
+        function printResults() {
+            if (!currentResult) {
+                showError('Нет результатов для печати');
+                return;
+            }
+            
+            const originalSheetsPerPage = sheetsPerPage;
+            const originalPage = currentPage;
+            
+            sheetsPerPage = totalSheets;
+            currentPage = 1;
+            displayCurrentPage();
+            
+            setTimeout(() => {
+                window.print();
+                
+                sheetsPerPage = originalSheetsPerPage;
+                currentPage = originalPage;
+                displayCurrentPage();
+            }, 100);
+        }
+
+        // Стили для печати
+        const printStyles = document.createElement('style');
+        printStyles.innerHTML = `
+            @media print {
+                body {
+                    background: white !important;
+                }
+                
+                .header,
+                .sidebar,
+                .visualization-controls,
+                .pagination-container,
+                .btn,
+                .alert {
+                    display: none !important;
+                }
+                
+                .main-app {
+                    display: block !important;
+                }
+                
+                .main-container {
+                    margin-top: 0 !important;
+                    padding: 20px !important;
+                    max-width: 100% !important;
+                }
+                
+                .layout-grid {
+                    display: block !important;
+                }
+                
+                .visualization-container {
+                    background: white !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    padding: 20px !important;
+                }
+                
+                .visualization-header {
+                    border-bottom: 2px solid #000 !important;
+                    padding-bottom: 10px !important;
+                    margin-bottom: 20px !important;
+                }
+                
+                .visualization-title {
+                    color: #000 !important;
+                    text-align: center !important;
+                    font-size: 24px !important;
+                }
+                
+                .sheet-wrapper {
+                    page-break-inside: avoid !important;
+                    margin-bottom: 30px !important;
+                    background: white !important;
+                    border: 1px solid #000 !important;
+                    padding: 15px !important;
+                }
+                
+                .sheet-header {
+                    color: #000 !important;
+                    margin-bottom: 10px !important;
+                }
+                
+                .sheet-title,
+                .sheet-info {
+                    color: #000 !important;
+                }
+                
+                .glass-sheet {
+                    border: 2px solid #000 !important;
+                    background: white !important;
+                    box-shadow: none !important;
+                }
+                
+                .detail {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    border: 1px solid #000 !important;
+                }
+                
+                .detail-label {
+                    background: white !important;
+                    border: 1px solid #000 !important;
+                    color: #000 !important;
+                }
+                
+                .detail-number,
+                .detail-info {
+                    color: #000 !important;
+                }
+                
+                .scrap {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+                
+                .scrap-label {
+                    background: white !important;
+                    border: 1px solid #000 !important;
+                    color: #000 !important;
+                }
+            }
+        `;
+        document.head.appendChild(printStyles);
+    </script>
+</body>
+</html>
